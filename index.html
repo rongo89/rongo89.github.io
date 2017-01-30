@@ -1,263 +1,116 @@
-<!DOCTYPE html>
-<html lang="en"><head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8">
-    <title>Weatherbox</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <link href="scripts/custom_style.css" rel="stylesheet">
-<style type="text/css">
-   
-</style>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script type="text/javascript" src="scripts/canar/vidvas.js"></script>
+    <script type="text/javascript" src="scripts/canar/obstacles.js"></script>
+    <style type="text/css">
+    body {
+      background: #000;
+      color: #FFF;
+      font-family: "Helvetica";
 
-<script type="text/javascript" src="scripts/jquery.js"></script>
-<script type="text/javascript" src="scripts/three.js"></script>
-<script type="text/javascript" src="scripts/perlin.js"></script>
-<script type="text/javascript" src="scripts/dat.js"></script>
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      margin-right: -50%;
+      transform: translate(-50%, -50%)
+    }
 
-<script type="text/javascript" src="scripts/EffectComposer.js"></script>
-<script type="text/javascript" src="scripts/Renderer.js"></script>
-<script type="text/javascript" src="scripts/Shader.js"></script>
-<script type="text/javascript" src="scripts/Detector.js"></script>
+    h1 {
+        color: #FFF;
+        font-family: 'Helvetica Neue', sans-serif;
+        font-size: 70px; 
+        font-weight: bold; 
+        letter-spacing: -1px; 
+        line-height: 1; text-align: center;
+    }
 
-<script type="text/javascript" src="scripts/weatherShader.js"></script>
-<script type="text/javascript" src="scripts/weather_api.js"></script>
+    h2 { 
+        color: #FFF; 
+        font-family: 'Open Sans', sans-serif;
+        font-size: 30px;
+        font-weight: 300;
+        line-height: 12px;
+        margin: 0 0 72px;
+        text-align: center; 
+    }
+
+    #intro {
+      position: relative;
+      text-align: center;
+      text-transform: translate(-50%, -50%);
+    }
+
+    #canvas-board {
+      position: relative;
+      margin: 0 auto;
+      background-color: white;
+      width: 500px;
+      border: 5px solid rgba(156, 224, 251, .5);
+    }
+
+    a:link, a:visited {
+        background-color: #f44336;
+        color: white;
+        padding: 14px 25px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    button {
+        background-color: #4CAF50; /* Green */
+        border: none;
+        color: white;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px; 
+    }
+
+    p { 
+        color: #685206;
+        font-family: 'Helvetica Neue', sans-serif; 
+        font-size: 14px; 
+        line-height: 24px; 
+        margin: 0 0 24px; 
+        text-align: center; 
+        text-justify: inter-word; 
+    }
+
+    #oldProject {
+        background-color: #f44323;
+        color: white;
+        padding: 10px 10px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+    }
+    </style>
 </head>
-
 <body>
-<div id="info">Weatherbox - Demo - Berlin</div>
-<div id="weather-values">
-<p><span id="connection">Current weather condition</span></p>
+    <div id="intro">
+    	<h1>Generative Gestaltung Endabgabe</h1>
+        <h2>Hold white paper in front of camera and draw some obstacles</h2>
+    </div>
+    <div id="frame">
+        <div id="canvas-board">    
+            <canvas id="c1" width="500" height="300"></canvas>        
+        </div>
+        <div align="center">
+            <br>
+            <button id="add" onclick="add_Circle();"> Add circle</button> 
+            <button id= "rem" onclick="remove_Circle();">Remove circle</button>
+            <br><br>
+            <a href="#" onclick="history.go(0)" >Reset</a>
+        </div>
+    </div>
+    <hr>
+        <div>
+            <p>Benjamin Fischer, 820943</p>
+            <a id="oldProject" href="weather.html">Weatherbox_Project</a>
+        </div>
+</body>
+</html>
 
-<p>Temperature: <span id="tempValue">-</span></p>
-<p>Shower quantity: <span id="showValue">-</span></p>
-<p>Time: <span id="timeValue">-</span></p>
-
-</div>
-<div id="copyright"><a href="mailto:anonymous@beuth-hochschule.de">Benjamin Fischer</a>, 2016</div>
-
-
-
-<script>
-
-    if (!Detector.webgl) Detector.addGetWebGLMessage();
-
-    var container;
-    var camera, scene, renderer;
-    var bubbles = [];
-    var bubbleGrowingTime = 80;
-    var mouseX = 0, mouseY = 0;
-    var frameCount = 0;
-    var windowHalfX = window.innerWidth / 2;
-    var windowHalfY = window.innerHeight / 2;
-    var shaderCall;
-    var composer;
-    var bubbleGeometry, bubbleMaterial;
-    var jitterFactor = 1;
-
-    document.addEventListener('mousemove', onDocumentMouseMove, false);
-    window.addEventListener('resize', onWindowResize, false);
-
-    init();
-    animate();
-
-    function init() {
-
-        container = document.createElement('div');
-        document.body.appendChild(container);
-
-        // Camera and Scene Setup
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 100000);
-        camera.position.z = 3200;
-        scene = new THREE.Scene();
-
-        // Load background
-        scene.background = new THREE.CubeTextureLoader()
-                .setPath('textures/')
-                .load(['sides.jpg', 'sides.jpg', 'top.jpg', 'ground.jpg', 'sides.jpg', 'sides.jpg']);
-
-
-        // Prepare bubbles
-        var textureCube = new THREE.CubeTextureLoader()
-                .setPath('textures/')
-                .load(['sides.jpg', 'sides.jpg', 'top.jpg', 'ground.jpg', 'sides.jpg', 'sides.jpg']);
-
-        textureCube.mapping = THREE.CubeRefractionMapping;
-        bubbleGeometry = new THREE.SphereBufferGeometry(100, 32, 16);
-        bubbleMaterial = new THREE.MeshBasicMaterial({color: 0xffffff, envMap: textureCube, refractionRatio: 0.9});
-
-        // Create bubbles
-        createNewBubbles(200);
-
-        // Setup Renderer
-        renderer = new THREE.WebGLRenderer({
-            alpha: true,
-            antialias: true
-        });
-        renderer.setClearColor(0x000000);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        container.appendChild(renderer.domElement);
-
-        composer = new THREE.EffectComposer(renderer);
-
-        // Setup for WeatherShader
-        var renderCall = new THREE.RenderPass(scene, camera);
-        shaderCall = new THREE.ShaderPass(THREE.WeatherShader);
-
-        // Add Shader Passes to Composer - order is important
-        composer.addPass(renderCall);
-        composer.addPass(shaderCall);
-
-        //set last pass in composer chain to renderToScreen
-        shaderCall.renderToScreen = true;
-    }
-
-    function createNewBubbles(count) {
-        for (var i = 0; i < count; i++) {
-
-            var bubble = new THREE.Mesh(bubbleGeometry, bubbleMaterial);
-
-            reInitBubble(bubble);
-
-            scene.add(bubble);
-            bubbles.push(bubble);
-        }
-    }
-
-    function reInitBubble(bubble) {
-
-        bubble.position.x = Math.random() * 10000 - 5000;
-        bubble.position.y = Math.random() * 10000 - 5000;
-        bubble.position.z = Math.random() * 10000 - 5000;
-
-        bubble.scale.x = bubble.scale.y = bubble.scale.z = Math.random() * 0.1;
-        bubble.lifeTime = 0;
-    }
-
-    function onWindowResize() {
-        windowHalfX = window.innerWidth / 2,
-                windowHalfY = window.innerHeight / 2,
-                camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    function onDocumentMouseMove(event) {
-        mouseX = (event.clientX - windowHalfX) * 10;
-        mouseY = (event.clientY - windowHalfY) * 10;
-    }
-
-    function animate() {
-        requestAnimationFrame(animate);
-        render();
-        frameCount = frameCount + 1;
-    }
-
-    function render() {
-        var timer = 0.0001 * Date.now();
-
-        // Change bubble position and size
-        for (var i = 0; i < bubbles.length; i++) {
-
-            var bubble = bubbles[i];
-
-            bubble.position.x = 5000 * Math.cos(timer + i/1.5);
-            bubble.position.y = 5000 * Math.sin(timer + i * 1.1);
-
-            // Add jitter depending on temperature
-            bubble.position.x += Math.random() * jitterFactor;
-            bubble.position.y += Math.random() * jitterFactor;
-
-            bubble.lifeTime++;
-
-            // Check if bubble should grow or get reinitialized
-            if (bubble.lifeTime < bubbleGrowingTime) {
-
-                bubble.scale.x = bubble.scale.y = bubble.scale.z = bubble.scale.x * 1.04;
-
-            }  else if (bubble.lifeTime > Math.random() * 3500 + 400) {
-                reInitBubble(bubble);
-            } 
-        }
-        camera.position.x += (mouseX - camera.position.x) * .05;
-        camera.position.y += (-mouseY - camera.position.y) * .05;
-        camera.lookAt(scene.position);
-
-        renderer.render(scene, camera);
-        composer.render();
-    }
-
-    function onTimeChange(brightness=null) {
-        if(controller.activeWeatherDemo){
-            brightness = controller.brightness
-            
-        } else {
-            brightness = brightness
-        }
-        var roomBrightness = brightness / 300 * 1.5;
-
-        // update shader uniforms
-        shaderCall.uniforms["brightness"].value = roomBrightness;
-    }
-
-    function onTemperatureChange(temperature=null) {
-        if(controller.activeWeatherDemo){
-            temperature = controller.temperature
-        } else {
-            temperature = temperature
-        }
-        var colorWarmth = temperature / 50 * 5 - 2;
-        // update shader uniforms
-        shaderCall.uniforms["warmth"].value = colorWarmth;
-        // update jitter
-        jitterFactor = colorWarmth * 20;
-    }
-
-    function onShowerQuantityChange(quantity=null) {
-        if(controller.activeWeatherDemo){
-            quantity = controller.quantity
-        } else {
-            quantity = quantity  
-        }
-        var mappedValue = quantity / 100 * 80 + 40;
-        bubbleGrowingTime = mappedValue;
-    }
-
-    // Dat GUI controller
-    var controller = {
-        temperature  : 10.0, // weather temperature
-        quantity   : 30.0, // shower qunatity
-        brightness  : 300.0, // time
-        activeWeatherDemo: true,
-    };
-
-    function onWeatherDemo(){
-        if(controller.activeWeatherDemo){
-            onTimeChange(controller.brightness);
-            onTemperatureChange(controller.temperature);
-            onShowerQuantityChange(controller.humidity);
-        } else {
-            weatherCall();
-        }
-    }
-
-    // DAT Gui Box
-    var gui = new dat.GUI({ autoplace: false, width: 350 });
-
-    var weatherDemo = gui.addFolder('Weather Demo');
-    weatherDemo.add(controller, "temperature", 0.0, 50.0).step(1.0).name("Temperature (C)").onChange(onTemperatureChange);
-    weatherDemo.add(controller, "quantity", 0.0, 100.0).step(1.0).name("Shower quantity").onChange(onShowerQuantityChange);
-    weatherDemo.add(controller, "brightness", 0.0, 300.0).step(10.0).name("Brightness/Time").onChange(onTimeChange);
-    weatherDemo.add(controller, "activeWeatherDemo").name("Activate Weather Demo (Deactivates weather fetching)").onChange(onWeatherDemo);
-
-    weatherDemo.open();
-
-</script>
-<div>
-    <canvas width="1440" height="710">
-        
-    </canvas>
-</div>
-
-
-</body></html>
