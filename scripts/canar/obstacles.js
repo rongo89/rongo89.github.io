@@ -51,7 +51,7 @@ window.onload = function() {
 			var r = frame.data[i * 4 + 0];
 			var g = frame.data[i * 4 + 1];
 			var b = frame.data[i * 4 + 2];
-		if (b > 125 && r > 125 && g > 125) {
+		if (b > 100 && r > 100 && g > 100) {
 		    frame.data[i * 4 + 0] = 255;
 		    frame.data[i * 4 + 1] = 255;
 		    frame.data[i * 4 + 2] = 255;
