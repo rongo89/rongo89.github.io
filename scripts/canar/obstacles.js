@@ -11,7 +11,7 @@ window.onload = function() {
 
 	var myCanvas;
 
-	var arc = [{x:222,y:111,r:15,color:44,vx:-3,vy:7},{x:222,y:111,r:15,color:44,vx:-2,vy:1},{x:11,y:222,r:15,color:44,vx:-3,vy:7}];
+	var arc = [{x:234,y:50,r:10,color:33,vx:-3,vy:7},{x:11,y:111,r:15,color:44,vx:-2,vy:1},{x:444,y:230,r:13,color:14,vx:-3,vy:7}];
 	var frame;
 	var pixelLength = 0;
 	var temp = [];
